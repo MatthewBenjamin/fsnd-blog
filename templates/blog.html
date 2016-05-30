@@ -1,0 +1,13 @@
+{% extends 'main.html' %}
+{% block content %}
+
+    {% for post in posts %}
+
+        <article>
+            <a href="{{post.key.urlsafe()}}"><h3>{{post.subject}}</h3></a>
+            <p>{{post.content}}</p>
+        </article>
+
+    {% endfor %}
+
+{% endblock %}

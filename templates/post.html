@@ -1,0 +1,9 @@
+{% extends 'main.html' %}
+{% block content %}
+
+    <article>
+        <a href="{{post.key.urlsafe()}}"><h3>{{post.subject}}</h3></a>
+        <p>{{post.content}}</p>
+    </article>
+
+{% endblock %}
