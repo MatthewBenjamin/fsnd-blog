@@ -5,11 +5,12 @@ from utils import (
     valid_username,
     valid_password,
     valid_email,
-    make_secure_val
 )
 
 from google.appengine.ext import ndb
 from models import Post, User
+
+# TODO: implement global message for html pages (in header -- or main?)
 
 
 class MainPage(BlogHandler):
@@ -23,8 +24,14 @@ class PostPage(BlogHandler):
     def get(self, post_urlsafe_key):
         # TODO: add getbyurlsafe util
         post = ndb.Key(urlsafe=post_urlsafe_key).get()
-        #print post
         self.render('post.html', post=post)
+
+
+class UserPosts(BlogHandler):
+    def get(self, username):
+        user = User.user_by_name(username)
+        posts = Post.query(ancestor=user.key).order(-Post.created).fetch(10)
+        self.render('blog.html', posts=posts)
 
 
 class NewPost(BlogHandler):
@@ -36,9 +43,11 @@ class NewPost(BlogHandler):
         content = self.request.get('content')
 
         if subject and content:
-            p = Post(subject=subject, content=content)
+            post_id = ndb.Model.allocate_ids(size=1, parent=self.user.key)[0]
+            post_key = ndb.Key('Post', post_id, parent=self.user.key)
+            p = Post(subject=subject, content=content, key=post_key)
             p.put()
-            self.redirect("/%s" % p.key.urlsafe())
+            self.redirect("/post/%s" % p.key.urlsafe())
 
 
 class Register(BlogHandler):
@@ -109,6 +118,7 @@ app = webapp2.WSGIApplication([('/', MainPage),  # what to put on MainPage?
                                ('/signup/?', Register),
                                ('/login/?', Login),
                                ('/logout/?', Logout),
-                               ('/([a-zA-Z0-9-_]+)(?:.json)?', PostPage),
+                               ('/post/([a-zA-Z0-9-_]+)(?:.json)?', PostPage),
+                               ('/user/([a-zA-Z0-9-_]+)(?:.json)?', UserPosts),
                                ],
                               debug=True)

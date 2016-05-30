@@ -32,7 +32,7 @@ class BlogHandler(webapp2.RequestHandler):
         self.response.out.write(*a, **kw)
 
     def render_str(self, template, **params):
-        # params['user'] = self.user
+        params['user'] = self.user
         t = jinja_env.get_template(template)
         return t.render(params)
 

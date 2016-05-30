@@ -4,8 +4,16 @@
     {% for post in posts %}
 
         <article>
-            <a href="{{post.key.urlsafe()}}"><h3>{{post.subject}}</h3></a>
+            <a href="/post/{{post.key.urlsafe()}}"><h3>{{post.subject}}</h3></a>
             <p>{{post.content}}</p>
+
+            <div>
+                <a href="#">Comment</a>
+                {% if post.key.parent() == user.key %}
+                    <a href="#">Edit</a>
+                    <a href="#">Delete</a>
+                {% endif %}
+            </div>
         </article>
 
     {% endfor %}
