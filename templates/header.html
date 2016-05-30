@@ -1,9 +1,19 @@
-<div>
-    <a href="/">Blog Front</a>
-    <a href="/newpost">New Post</a>
-
-    <!-- TODO: only show links relevant for current user -->
-    <a href="/signup">Signup</a>
-    <a href="/login">Login</a>
-    <a href="/logout">Logout</a>
+<div class="row">
+    <!--<div class="eleven columns"></div>-->
+    <div class="twelve columns" style="text-align: right">
+        <nav>
+            {% if user %}
+                <a href="/newpost">New Post</a>
+                <span> | </span>
+                <a href="/user/{{user.username}}">{{user.username}}</a>
+                <span> | </span>
+                <a href="/logout">Logout</a>
+            {% else %}
+                <a href="/signup">Signup</a>
+                <span> | </span>
+                <a href="/login">Login</a>
+            {% endif %}
+        </nav>
+    </div>
 </div>
+<a href="/"><h1>Home</h1></a>
