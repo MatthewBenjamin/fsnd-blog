@@ -10,8 +10,8 @@
             <div>
                 <a href="#">Comment</a>
                 {% if post.key.parent() == user.key %}
-                    <a href="#">Edit</a>
-                    <a href="#">Delete</a>
+                    <a href="/edit/{{post.key.urlsafe()}}">Edit</a>
+                    <a href="/delete/{{post.key.urlsafe()}}">Delete</a>
                 {% endif %}
             </div>
         </article>

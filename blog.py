@@ -24,7 +24,67 @@ class PostPage(BlogHandler):
     def get(self, post_urlsafe_key):
         # TODO: add getbyurlsafe util
         post = ndb.Key(urlsafe=post_urlsafe_key).get()
-        self.render('post.html', post=post)
+        self.render('blog.html', posts=[post])
+
+
+class EditPost(BlogHandler):
+    def get(self, post_urlsafe_key):
+        # TODO helper func to check author
+        post_to_edit = ndb.Key(urlsafe=post_urlsafe_key).get()
+        if not self.user:
+            print "NOT LOGGED IN"
+            self.redirect('/login')
+        elif post_to_edit.key.parent() != self.user.key:
+            # TODO: add global msg to main.html
+            error = "You can only edit your own posts."
+            self.redirect('/')
+        else:
+            self.render('editpost.html', post=post_to_edit)
+
+    def post(self, post_urlsafe_key):
+        post_to_edit = ndb.Key(urlsafe=post_urlsafe_key).get()
+        if not self.user:
+            print "NOT LOGGED IN"
+            self.redirect('/login')
+        elif post_to_edit.key.parent() != self.user.key:
+            # TODO: add global msg to main.html
+            error = "You can only edit your own posts."
+            self.redirect('/')
+        else:
+            post_to_edit.subject = self.request.get('subject')
+            post_to_edit.content = self.request.get('content')
+            post_to_edit.put()
+            self.redirect('/post/%s' % post_urlsafe_key)
+
+
+class DeletePost(BlogHandler):
+    def get(self, post_urlsafe_key):
+        # TODO helper func to check author
+        post_to_delete = ndb.Key(urlsafe=post_urlsafe_key).get()
+        if not self.user:
+            print "NOT LOGGED IN"
+            self.redirect('/login')
+        elif post_to_delete.key.parent() != self.user.key:
+            # TODO: add global msg to main.html
+            error = "You can only delete your own posts."
+            self.redirect('/')
+        else:
+            self.render('deletepost.html', post=post_to_delete)
+
+    def post(self, post_urlsafe_key):
+        post_to_delete = ndb.Key(urlsafe=post_urlsafe_key).get()
+        if not self.user:
+            print "NOT LOGGED IN"
+            self.redirect('/login')
+        elif post_to_delete.key.parent() != self.user.key:
+            # TODO: add global msg to main.html
+            error = "You can only delete your own posts."
+            self.redirect('/')
+        else:
+            post_to_delete.key.delete()
+            # TODO: post still displays upon redirect
+            # - need to refresh page after redirect
+            self.redirect('/')
 
 
 class UserPosts(BlogHandler):
@@ -142,5 +202,7 @@ app = webapp2.WSGIApplication([('/', MainPage),  # what to put on MainPage?
                                ('/logout/?', Logout),
                                ('/post/([a-zA-Z0-9-_]+)(?:.json)?', PostPage),
                                ('/user/([a-zA-Z0-9-_]+)(?:.json)?', UserPosts),
+                               ('/edit/([a-zA-Z0-9-_]+)/?', EditPost),
+                               ('/delete/([a-zA-Z0-9-_]+)/?', DeletePost),
                                ],
                               debug=True)
