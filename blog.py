@@ -36,75 +36,97 @@ class UserPosts(BlogHandler):
 
 class NewPost(BlogHandler):
     def get(self):
-        self.render('newpost.html')
+        if self.user:
+            self.render('newpost.html')
+        else:
+            self.redirect('/login')
 
     def post(self):
-        subject = self.request.get('subject')
-        content = self.request.get('content')
+        if not self.user:
+            self.redirect('/login')
+        else:
+            subject = self.request.get('subject')
+            content = self.request.get('content')
 
-        if subject and content:
-            post_id = ndb.Model.allocate_ids(size=1, parent=self.user.key)[0]
-            post_key = ndb.Key('Post', post_id, parent=self.user.key)
-            p = Post(subject=subject, content=content, key=post_key)
-            p.put()
-            self.redirect("/post/%s" % p.key.urlsafe())
+            if subject and content:
+                post_id = ndb.Model.allocate_ids(size=1,
+                                                 parent=self.user.key)[0]
+                post_key = ndb.Key('Post', post_id, parent=self.user.key)
+                p = Post(subject=subject, content=content, key=post_key)
+                p.put()
+                self.redirect("/post/%s" % p.key.urlsafe())
 
 
 class Register(BlogHandler):
     def get(self):
-        self.render('registration.html')
+        if not self.user:
+            self.render('registration.html')
+        else:
+            # TODO: add msg "You are already logged in"
+            self.redirect('/')
 
     def post(self):
-        self.username = self.request.get('username')
-        self.password = self.request.get('password')
-        self.confirm = self.request.get('confirm')
-        self.email = self.request.get('email')
-
-        params = dict(username=self.username,
-                      email=self.email)
-        have_error = False
-        if not valid_username(self.username):
-            params['error_username'] = 'Invalid username'
-            have_error = True
-        elif User.user_by_name(self.username):
-            params['error_username'] = 'User with that name already exists'
-            have_error = True
-        if not valid_password(self.password):
-            params['error_password'] = 'Invalid password'
-            have_error = True
-        elif self.password != self.confirm:
-            params['error_confirm'] = 'Passwords do not match'
-            have_error = True
-        if not valid_email(self.email):
-            params['error_email'] = 'Invalid email'
-            have_error = True
-
-        if have_error:
-            self.render('registration.html', **params)
-        else:
-            user = User.register_user(username=self.username,
-                                      password=self.password,
-                                      email=self.email)
-            user.put()
-            self.login(user)
+        if self.user:
+            # TODO: add msg "You are already logged in"
             self.redirect('/')
+        else:
+            self.username = self.request.get('username')
+            self.password = self.request.get('password')
+            self.confirm = self.request.get('confirm')
+            self.email = self.request.get('email')
+
+            params = dict(username=self.username,
+                          email=self.email)
+            have_error = False
+            if not valid_username(self.username):
+                params['error_username'] = 'Invalid username'
+                have_error = True
+            elif User.user_by_name(self.username):
+                params['error_username'] = 'User with that name already exists'
+                have_error = True
+            if not valid_password(self.password):
+                params['error_password'] = 'Invalid password'
+                have_error = True
+            elif self.password != self.confirm:
+                params['error_confirm'] = 'Passwords do not match'
+                have_error = True
+            if not valid_email(self.email):
+                params['error_email'] = 'Invalid email'
+                have_error = True
+
+            if have_error:
+                self.render('registration.html', **params)
+            else:
+                user = User.register_user(username=self.username,
+                                          password=self.password,
+                                          email=self.email)
+                user.put()
+                self.login(user)
+                self.redirect('/')
 
 
 class Login(BlogHandler):
     def get(self):
-        self.render('login.html')
+        if not self.user:
+            self.render('login.html')
+        else:
+            # TODO: redirect w msg "You are already logged in"
+            self.redirect('/')
 
     def post(self):
-        username = self.request.get('username')
-        password = self.request.get('password')
-
-        user = User.login(username, password)
-        if user:
-            self.login(user)
+        if self.user:
             self.redirect('/')
         else:
-            login_error = 'Invalid login'
-            self.render('login.html', login_error=login_error)
+            username = self.request.get('username')
+            password = self.request.get('password')
+
+            user = User.login(username, password)
+            if user:
+                self.login(user)
+                self.redirect('/')
+            else:
+                login_error = 'Invalid login'
+                self.render('login.html', login_error=login_error)
 
 
 class Logout(BlogHandler):
