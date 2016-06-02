@@ -9,9 +9,7 @@
         {% if post.key.parent() == user.key %}
             <a href="/edit/{{post.key.urlsafe()}}">Edit</a>
             <a href="/delete/{{post.key.urlsafe()}}">Delete</a>
-        {% endif %}
-
-        {% if post.key.parent() != user.key %}
+        {% else %}
             <form action="/post/{{post.key.urlsafe()}}/like" method="post">
             {% if post.key in user.liked_posts %}
                     <button class="button-primary" type="submit">Liked</button>
@@ -27,9 +25,17 @@
         {% for comment in comments %}
             <a href="/user/{{comment.author}}"><h5>{{comment.author}}</h5></a>
             <p>{{comment.content}}</p>
+            <p>Likes: {{comment.likes}}</p>
             {% if comment.author == user.username %}
                 <a href="/comment/{{comment.key.urlsafe()}}/edit">Edit</a>
                 <a href="/comment/{{comment.key.urlsafe()}}/delete">Delete</a>
+            {% else %}
+                <form action="/comment/{{comment.key.urlsafe()}}/like" method="post">
+                {% if comment.key in user.liked_comments %}
+                        <button class="button-primary" type="submit">Liked</button>
+                {% else %}
+                        <button type="submit">Like</button>
+                {% endif %}
             {% endif %}
         {% endfor %}
     </section>

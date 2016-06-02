@@ -27,8 +27,7 @@ class User(ndb.Model):
     pw_hash = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
     liked_posts = ndb.KeyProperty(repeated=True)
-#    post_likes = repeated key property
-#    comment_likes = repeated key property
+    liked_comments = ndb.KeyProperty(repeated=True)
 
     @classmethod
     def register_user(cls, username, password, email):
@@ -48,11 +47,6 @@ class User(ndb.Model):
         if user and valid_pw(name, password, user.pw_hash):
             return user
 
-# models to add:
-# - blog post
-# - user
-# - comment
-
 
 class Post(ndb.Model):
     """Blog post"""
@@ -63,9 +57,8 @@ class Post(ndb.Model):
     likes = ndb.IntegerProperty(default=0, required=True)
 #    tags = repeated string property
 
+
 class Comment(ndb.Model):
-#    child of Post
-#    user key = KeyProperty
     content = ndb.TextProperty(required=True)
     author = ndb.StringProperty(required=True)
-#    likes = integer property, default=0
+    likes = ndb.IntegerProperty(default=0)

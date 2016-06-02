@@ -273,6 +273,30 @@ class EditComment(BlogHandler):
                 self.redirect('/')
 
 
+class ToggleCommentLike(BlogHandler):
+    def post(self, comment_urlsafe_key):
+        if not self.user:
+            self.redirect('/login')
+        else:
+            try:
+                comment_to_like = get_by_urlsafe(comment_urlsafe_key, Comment)
+                if self.user.username == comment_to_like.author:
+                    self.redirect('/post/%s' % comment_to_like.key.parent().urlsafe())
+                elif comment_to_like.key in self.user.liked_comments:
+                    self.user.liked_comments.pop(
+                        self.user.liked_comments.index(comment_to_like.key))
+                    comment_to_like.likes -= 1
+                else:
+                    self.user.liked_comments.append(comment_to_like.key)
+                    comment_to_like.likes += 1
+                self.user.put()
+                comment_to_like.put()
+                self.redirect('/post/%s' % comment_to_like.key.parent().urlsafe())
+            except Exception, e:
+                print e
+                self.redirect('/')
+
+
 class Register(BlogHandler):
     def get(self):
         if not self.user:
@@ -364,5 +388,6 @@ app = webapp2.WSGIApplication([('/', MainPage),  # what to put on MainPage?
                                ('/comment/([a-zA-Z0-9-_]+)/?', AddComment),
                                ('/comment/([a-zA-Z0-9-_]+)/delete/?', DeleteComment),
                                ('/comment/([a-zA-Z0-9-_]+)/edit/?', EditComment),
+                               ('/comment/([a-zA-Z0-9-_]+)/like/?', ToggleCommentLike),
                                ],
                               debug=True)
