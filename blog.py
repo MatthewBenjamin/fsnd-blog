@@ -21,7 +21,7 @@ from utils import (
 )
 
 from google.appengine.ext import ndb
-from models import Post, User
+from models import Post, User, Comment
 
 # TODO: implement global message for html pages (in header -- or main?)
 
@@ -150,6 +150,129 @@ class NewPost(BlogHandler):
                 self.redirect("/post/%s" % p.key.urlsafe())
 
 
+class TogglePostLike(BlogHandler):
+    def post(self, post_urlsafe_key):
+        if not self.user:
+            self.redirect('/login')
+        else:
+            try:
+                post_to_like = get_by_urlsafe(post_urlsafe_key, Post)
+                if self.user.key == post_to_like.key.parent():
+                    self.redirect('/post/%s' % post_to_like.key.urlsafe())
+                elif post_to_like.key in self.user.liked_posts:
+                    self.user.liked_posts.pop(
+                        self.user.liked_posts.index(post_to_like.key))
+                    post_to_like.likes -= 1
+                else:
+                    self.user.liked_posts.append(post_to_like.key)
+                    post_to_like.likes += 1
+                self.user.put()
+                post_to_like.put()
+                self.redirect('/post/%s' % post_to_like.key.urlsafe())
+            except Exception, e:
+                print e
+                self.redirect('/')
+
+
+class AddComment(BlogHandler):
+    def post(self, post_urlsafe_key):
+        if not self.user:
+            self.redirect('/login')
+        else:
+            try:
+                post_to_comment = get_by_urlsafe(post_urlsafe_key, Post)
+                new_comment = self.request.get('comment')
+                comment_id = ndb.Model.allocate_ids(
+                    size=1,
+                    parent=ndb.Key(urlsafe=post_urlsafe_key))[0]
+                comment_key = ndb.Key(
+                    'Comment',
+                    comment_id,
+                    parent=ndb.Key(urlsafe=post_urlsafe_key))
+                Comment(
+                    content=new_comment,
+                    key=comment_key,
+                    author=self.user.username).put()
+                self.redirect('/post/%s' % post_urlsafe_key)
+            except Exception, e:
+                print e
+                self.redirect('/')
+
+
+class DeleteComment(BlogHandler):
+    def get(self, comment_urlsafe_key):
+        if not self.user:
+            self.redirect('/login')
+        else:
+            try:
+                comment_to_delete = get_by_urlsafe(
+                    comment_urlsafe_key,
+                    Comment)
+                if comment_to_delete.author != self.user.username:
+                    self.redirect('/')
+                else:
+                    self.render('deleteitem.html',
+                                item="this comment",
+                                comment=comment_to_delete.content)
+            except Exception, e:
+                print e
+                self.redirect('/')
+
+    def post(self, comment_urlsafe_key):
+        if not self.user:
+            self.redirect('/login')
+        else:
+            try:
+                comment_to_delete = get_by_urlsafe(
+                    comment_urlsafe_key,
+                    Comment)
+                if comment_to_delete.author != self.user.username:
+                    self.redirect('/')
+                else:
+                    comment_to_delete.key.delete()
+                    self.redirect('/')
+            except Exception, e:
+                print e
+                self.redirect('/')
+
+
+class EditComment(BlogHandler):
+    def get(self, comment_urlsafe_key):
+        if not self.user:
+            self.redirect('/login')
+        else:
+            try:
+                comment_to_edit = get_by_urlsafe(
+                    comment_urlsafe_key,
+                    Comment)
+                if comment_to_edit.author != self.user.username:
+                    self.redirect('/')
+                else:
+                    self.render('editcomment.html',
+                                comment=comment_to_edit)
+            except Exception, e:
+                print e
+                self.redirect('/')
+
+    def post(self, comment_urlsafe_key):
+        if not self.user:
+            self.redirect('/login')
+        else:
+            try:
+                comment_to_edit = get_by_urlsafe(
+                    comment_urlsafe_key,
+                    Comment)
+                if comment_to_edit.author != self.user.username:
+                    self.redirect('/')
+                else:
+                    comment_to_edit.content = self.request.get('comment')
+                    comment_to_edit.put()
+                    self.redirect('/')
+            except Exception, e:
+                print e
+                self.redirect('/')
+
+
 class Register(BlogHandler):
     def get(self):
         if not self.user:
@@ -237,5 +360,9 @@ app = webapp2.WSGIApplication([('/', MainPage),  # what to put on MainPage?
                                ('/user/([a-zA-Z0-9-_]+)(?:.json)?', UserPosts),
                                ('/edit/([a-zA-Z0-9-_]+)/?', EditPost),
                                ('/delete/([a-zA-Z0-9-_]+)/?', DeletePost),
+                               ('/post/([a-zA-Z0-9-_]+)/like/?', TogglePostLike),
+                               ('/comment/([a-zA-Z0-9-_]+)/?', AddComment),
+                               ('/comment/([a-zA-Z0-9-_]+)/delete/?', DeleteComment),
+                               ('/comment/([a-zA-Z0-9-_]+)/edit/?', EditComment),
                                ],
                               debug=True)

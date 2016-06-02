@@ -26,6 +26,7 @@ class User(ndb.Model):
     username = ndb.StringProperty(required=True)
     pw_hash = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
+    liked_posts = ndb.KeyProperty(repeated=True)
 #    post_likes = repeated key property
 #    comment_likes = repeated key property
 
@@ -62,8 +63,9 @@ class Post(ndb.Model):
     likes = ndb.IntegerProperty(default=0, required=True)
 #    tags = repeated string property
 
-# class Comment(ndb.Model):
+class Comment(ndb.Model):
 #    child of Post
 #    user key = KeyProperty
-#    content = Text property ?
+    content = ndb.TextProperty(required=True)
+    author = ndb.StringProperty(required=True)
 #    likes = integer property, default=0

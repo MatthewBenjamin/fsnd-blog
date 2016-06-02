@@ -6,15 +6,14 @@
         <article>
             <a href="/post/{{post.key.urlsafe()}}"><h3>{{post.subject}}</h3></a>
             <p>{{post.content}}</p>
-
-            <div>
-                <a href="#">Comment</a>
-                {% if post.key.parent() == user.key %}
-                    <a href="/edit/{{post.key.urlsafe()}}">Edit</a>
-                    <a href="/delete/{{post.key.urlsafe()}}">Delete</a>
-                {% endif %}
-            </div>
         </article>
+
+        {% if post.key.parent() == user.key %}
+            <div>
+                <a href="/edit/{{post.key.urlsafe()}}">Edit</a>
+                <a href="/delete/{{post.key.urlsafe()}}">Delete</a>
+            </div>
+        {% endif %}
 
     {% endfor %}
 

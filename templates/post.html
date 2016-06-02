@@ -2,8 +2,42 @@
 {% block content %}
 
     <article>
-        <a href="{{post.key.urlsafe()}}"><h3>{{post.subject}}</h3></a>
+        <h3>{{post.subject}}</h3>
         <p>{{post.content}}</p>
+        <p>Likes: {{post.likes}}</p>
+
+        {% if post.key.parent() == user.key %}
+            <a href="/edit/{{post.key.urlsafe()}}">Edit</a>
+            <a href="/delete/{{post.key.urlsafe()}}">Delete</a>
+        {% endif %}
+
+        {% if post.key.parent() != user.key %}
+            <form action="/post/{{post.key.urlsafe()}}/like" method="post">
+            {% if post.key in user.liked_posts %}
+                    <button class="button-primary" type="submit">Liked</button>
+            {% else %}
+                    <button type="submit">Like</button>
+            {% endif %}
+            </form>
+        {% endif %}
     </article>
+
+    <section>
+        <h4>Comments</h4>
+        {% for comment in comments %}
+            <a href="/user/{{comment.author}}"><h5>{{comment.author}}</h5></a>
+            <p>{{comment.content}}</p>
+            {% if comment.author == user.username %}
+                <a href="/comment/{{comment.key.urlsafe()}}/edit">Edit</a>
+                <a href="/comment/{{comment.key.urlsafe()}}/delete">Delete</a>
+            {% endif %}
+        {% endfor %}
+    </section>
+
+    <h5>Add a comment:</h5>
+    <form method="post" action="/comment/{{post.key.urlsafe()}}">
+        <textarea name="comment"></textarea>
+        <input type="submit">
+    </form>
 
 {% endblock %}
