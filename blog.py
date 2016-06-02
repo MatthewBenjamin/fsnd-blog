@@ -1,10 +1,23 @@
 # blog.py - appengine blog application
+
+#######################################
+#
+# TODO:
+#   -flash messages
+#   - REFACTOR auth checks (esp. checking authors) -- lots of repetition!!
+#   - comments: likes
+#
+#######################################
+
+
 import webapp2
+
 from utils import (
     BlogHandler,
     valid_username,
     valid_password,
     valid_email,
+    get_by_urlsafe
 )
 
 from google.appengine.ext import ndb
@@ -22,69 +35,89 @@ class MainPage(BlogHandler):
 
 class PostPage(BlogHandler):
     def get(self, post_urlsafe_key):
-        # TODO: add getbyurlsafe util
-        post = ndb.Key(urlsafe=post_urlsafe_key).get()
-        self.render('blog.html', posts=[post])
+        try:
+            post = get_by_urlsafe(post_urlsafe_key, Post)
+            comments = Comment.query(ancestor=post.key).fetch()
+            self.render('post.html', post=post, comments=comments)
+        except Exception, e:
+            print e
+            self.redirect('/')
 
 
 class EditPost(BlogHandler):
     def get(self, post_urlsafe_key):
-        # TODO helper func to check author
-        post_to_edit = ndb.Key(urlsafe=post_urlsafe_key).get()
         if not self.user:
-            print "NOT LOGGED IN"
             self.redirect('/login')
-        elif post_to_edit.key.parent() != self.user.key:
-            # TODO: add global msg to main.html
-            error = "You can only edit your own posts."
-            self.redirect('/')
         else:
-            self.render('editpost.html', post=post_to_edit)
+            try:
+                post_to_edit = get_by_urlsafe(post_urlsafe_key, Post)
+                if post_to_edit.key.parent() != self.user.key:
+                    # TODO: add global msg to main.html
+                    error = "You can only edit your own posts."
+                    self.redirect('/')
+                else:
+                    self.render('editpost.html', post=post_to_edit)
+            except Exception, e:
+                print e
+                self.redirect('/')
 
     def post(self, post_urlsafe_key):
-        post_to_edit = ndb.Key(urlsafe=post_urlsafe_key).get()
         if not self.user:
-            print "NOT LOGGED IN"
             self.redirect('/login')
-        elif post_to_edit.key.parent() != self.user.key:
-            # TODO: add global msg to main.html
-            error = "You can only edit your own posts."
-            self.redirect('/')
         else:
-            post_to_edit.subject = self.request.get('subject')
-            post_to_edit.content = self.request.get('content')
-            post_to_edit.put()
-            self.redirect('/post/%s' % post_urlsafe_key)
+            try:
+                post_to_edit = get_by_urlsafe(post_urlsafe_key, Post)
+                if post_to_edit.key.parent() != self.user.key:
+                    # TODO: add global msg to main.html
+                    error = "You can only edit your own posts."
+                    self.redirect('/')
+                else:
+                    post_to_edit.subject = self.request.get('subject')
+                    post_to_edit.content = self.request.get('content')
+                    post_to_edit.put()
+                    self.redirect('/post/%s' % post_urlsafe_key)
+            except Exception, e:
+                print e
+                self.redirect('/')
 
 
 class DeletePost(BlogHandler):
     def get(self, post_urlsafe_key):
         # TODO helper func to check author
-        post_to_delete = ndb.Key(urlsafe=post_urlsafe_key).get()
         if not self.user:
-            print "NOT LOGGED IN"
             self.redirect('/login')
-        elif post_to_delete.key.parent() != self.user.key:
-            # TODO: add global msg to main.html
-            error = "You can only delete your own posts."
-            self.redirect('/')
         else:
-            self.render('deletepost.html', post=post_to_delete)
+            try:
+                post_to_delete = get_by_urlsafe(post_urlsafe_key, Post)
+                if post_to_delete.key.parent() != self.user.key:
+                    # TODO: add global msg to main.html
+                    error = "You can only delete your own posts."
+                    self.redirect('/')
+                else:
+                    self.render('deleteitem.html', post=post_to_delete)
+            except Exception, e:
+                print e
+                self.redirect('/')
+
 
     def post(self, post_urlsafe_key):
-        post_to_delete = ndb.Key(urlsafe=post_urlsafe_key).get()
         if not self.user:
-            print "NOT LOGGED IN"
             self.redirect('/login')
-        elif post_to_delete.key.parent() != self.user.key:
-            # TODO: add global msg to main.html
-            error = "You can only delete your own posts."
-            self.redirect('/')
         else:
-            post_to_delete.key.delete()
-            # TODO: post still displays upon redirect
-            # - need to refresh page after redirect
-            self.redirect('/')
+            try:
+                post_to_delete = get_by_urlsafe(post_urlsafe_key, Post)
+                if post_to_delete.key.parent() != self.user.key:
+                    # TODO: add global msg to main.html
+                    error = "You can only delete your own posts."
+                    self.redirect('/')
+                else:
+                    post_to_delete.key.delete()
+                    # TODO: post still displays upon redirect
+                    # - need to refresh page after redirect
+                    self.redirect('/')
+            except Exception, e:
+                print e
+                self.redirect('/')
 
 
 class UserPosts(BlogHandler):

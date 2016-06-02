@@ -83,3 +83,23 @@ def valid_password(password):
 EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
 def valid_email(email):
     return not email or EMAIL_RE.match(email)
+
+
+def get_by_urlsafe(urlsafe_key, model):
+    """Returns a datastore entity by urlsafe key"""
+    try:
+        key = ndb.Key(urlsafe=urlsafe_key)
+    except TypeError:
+        raise Exception('Invalid Key')
+    except Exception, e:
+        if e.__class__.__name__ == 'ProtocolBufferDecodeError':
+            raise Exception('Invalid Key')
+        else:
+            raise
+
+    entity = key.get()
+    if not entity:
+        raise Exception("Entity not found")
+    if not isinstance(entity, model):
+        raise ValueError('Incorrect Kind')
+    return entity
