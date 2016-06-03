@@ -4,8 +4,9 @@
 #
 # TODO:
 #   -flash messages
-#   - REFACTOR auth checks (esp. checking authors) -- lots of repetition!!
-#   - comments: likes
+#   - REFACTOR - get & post on some handlers share resources
+#   - REFACTOR http methods (e.g. replace DeletePost using post method
+#                           with delete method to a general Post handler)
 #
 #######################################
 
@@ -17,7 +18,6 @@ from utils import (
     valid_username,
     valid_password,
     valid_email,
-    get_by_urlsafe
 )
 
 from google.appengine.ext import ndb
@@ -35,89 +35,35 @@ class MainPage(BlogHandler):
 
 class PostPage(BlogHandler):
     def get(self, post_urlsafe_key):
-        try:
-            post = get_by_urlsafe(post_urlsafe_key, Post)
-            comments = Comment.query(ancestor=post.key).fetch()
-            self.render('post.html', post=post, comments=comments)
-        except Exception, e:
-            print e
-            self.redirect('/')
+        post = self.get_by_urlsafe(post_urlsafe_key, Post)
+        comments = Comment.query(ancestor=post.key).fetch()
+        self.render('post.html', post=post, comments=comments)
 
 
 class EditPost(BlogHandler):
     def get(self, post_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
-        else:
-            try:
-                post_to_edit = get_by_urlsafe(post_urlsafe_key, Post)
-                if post_to_edit.key.parent() != self.user.key:
-                    # TODO: add global msg to main.html
-                    error = "You can only edit your own posts."
-                    self.redirect('/')
-                else:
-                    self.render('editpost.html', post=post_to_edit)
-            except Exception, e:
-                print e
-                self.redirect('/')
+        post_to_edit = self.get_authed_entity(post_urlsafe_key, Post)
+        self.render('editpost.html', post=post_to_edit)
 
     def post(self, post_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
-        else:
-            try:
-                post_to_edit = get_by_urlsafe(post_urlsafe_key, Post)
-                if post_to_edit.key.parent() != self.user.key:
-                    # TODO: add global msg to main.html
-                    error = "You can only edit your own posts."
-                    self.redirect('/')
-                else:
-                    post_to_edit.subject = self.request.get('subject')
-                    post_to_edit.content = self.request.get('content')
-                    post_to_edit.put()
-                    self.redirect('/post/%s' % post_urlsafe_key)
-            except Exception, e:
-                print e
-                self.redirect('/')
+        post_to_edit = self.get_authed_entity(post_urlsafe_key, Post)
+        post_to_edit.subject = self.request.get('subject')
+        post_to_edit.content = self.request.get('content')
+        post_to_edit.put()
+        self.redirect('/post/%s' % post_urlsafe_key)
 
 
 class DeletePost(BlogHandler):
     def get(self, post_urlsafe_key):
-        # TODO helper func to check author
-        if not self.user:
-            self.redirect('/login')
-        else:
-            try:
-                post_to_delete = get_by_urlsafe(post_urlsafe_key, Post)
-                if post_to_delete.key.parent() != self.user.key:
-                    # TODO: add global msg to main.html
-                    error = "You can only delete your own posts."
-                    self.redirect('/')
-                else:
-                    self.render('deleteitem.html', post=post_to_delete)
-            except Exception, e:
-                print e
-                self.redirect('/')
-
+        post_to_delete = self.get_authed_entity(post_urlsafe_key, Post)
+        self.render('deleteitem.html', post=post_to_delete)
 
     def post(self, post_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
-        else:
-            try:
-                post_to_delete = get_by_urlsafe(post_urlsafe_key, Post)
-                if post_to_delete.key.parent() != self.user.key:
-                    # TODO: add global msg to main.html
-                    error = "You can only delete your own posts."
-                    self.redirect('/')
-                else:
-                    post_to_delete.key.delete()
-                    # TODO: post still displays upon redirect
-                    # - need to refresh page after redirect
-                    self.redirect('/')
-            except Exception, e:
-                print e
-                self.redirect('/')
+        post_to_delete = self.get_authed_entity(post_urlsafe_key, Post)
+        post_to_delete.key.delete()
+        # TODO: post still displays upon redirect
+        # - need to refresh page after redirect
+        self.redirect('/')
 
 
 class UserPosts(BlogHandler):
@@ -129,49 +75,40 @@ class UserPosts(BlogHandler):
 
 class NewPost(BlogHandler):
     def get(self):
-        if self.user:
-            self.render('newpost.html')
-        else:
-            self.redirect('/login')
+        if not self.user:
+            return self.redirect('/login')
+        self.render('newpost.html')
 
     def post(self):
         if not self.user:
-            self.redirect('/login')
-        else:
-            subject = self.request.get('subject')
-            content = self.request.get('content')
+            return self.redirect('/login')
 
-            if subject and content:
-                post_id = ndb.Model.allocate_ids(size=1,
-                                                 parent=self.user.key)[0]
-                post_key = ndb.Key('Post', post_id, parent=self.user.key)
-                p = Post(subject=subject, content=content, key=post_key)
-                p.put()
-                self.redirect("/post/%s" % p.key.urlsafe())
+        subject = self.request.get('subject')
+        content = self.request.get('content')
+
+        if subject and content:
+            post_id = ndb.Model.allocate_ids(size=1,
+                                             parent=self.user.key)[0]
+            post_key = ndb.Key('Post', post_id, parent=self.user.key)
+            p = Post(subject=subject, content=content, key=post_key)
+            p.put()
+            self.redirect("/post/%s" % p.key.urlsafe())
 
 
 class TogglePostLike(BlogHandler):
     def post(self, post_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
+        post_to_like = self.get_authed_entity(
+            post_urlsafe_key, Post, need_author=False)
+        if post_to_like.key in self.user.liked_posts:
+            self.user.liked_posts.pop(
+                self.user.liked_posts.index(post_to_like.key))
+            post_to_like.likes -= 1
         else:
-            try:
-                post_to_like = get_by_urlsafe(post_urlsafe_key, Post)
-                if self.user.key == post_to_like.key.parent():
-                    self.redirect('/post/%s' % post_to_like.key.urlsafe())
-                elif post_to_like.key in self.user.liked_posts:
-                    self.user.liked_posts.pop(
-                        self.user.liked_posts.index(post_to_like.key))
-                    post_to_like.likes -= 1
-                else:
-                    self.user.liked_posts.append(post_to_like.key)
-                    post_to_like.likes += 1
-                self.user.put()
-                post_to_like.put()
-                self.redirect('/post/%s' % post_to_like.key.urlsafe())
-            except Exception, e:
-                print e
-                self.redirect('/')
+            self.user.liked_posts.append(post_to_like.key)
+            post_to_like.likes += 1
+        self.user.put()
+        post_to_like.put()
+        self.redirect('/post/%s' % post_to_like.key.urlsafe())
 
 
 class AddComment(BlogHandler):
@@ -179,122 +116,69 @@ class AddComment(BlogHandler):
         if not self.user:
             self.redirect('/login')
         else:
-            try:
-                post_to_comment = get_by_urlsafe(post_urlsafe_key, Post)
-                new_comment = self.request.get('comment')
-                comment_id = ndb.Model.allocate_ids(
-                    size=1,
-                    parent=ndb.Key(urlsafe=post_urlsafe_key))[0]
-                comment_key = ndb.Key(
-                    'Comment',
-                    comment_id,
-                    parent=ndb.Key(urlsafe=post_urlsafe_key))
-                Comment(
-                    content=new_comment,
-                    key=comment_key,
-                    author=self.user.username).put()
-                self.redirect('/post/%s' % post_urlsafe_key)
-            except Exception, e:
-                print e
-                self.redirect('/')
+            post_to_comment = self.get_by_urlsafe(post_urlsafe_key, Post)
+            new_comment = self.request.get('comment')
+            comment_id = ndb.Model.allocate_ids(
+                size=1,
+                parent=post_to_comment.key)[0]
+            comment_key = ndb.Key(
+                'Comment',
+                comment_id,
+                parent=post_to_comment.key)
+            Comment(
+                content=new_comment,
+                key=comment_key,
+                author=self.user.username).put()
+            self.redirect('/post/%s' % post_urlsafe_key)
 
 
 class DeleteComment(BlogHandler):
     def get(self, comment_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
-        else:
-            try:
-                comment_to_delete = get_by_urlsafe(
-                    comment_urlsafe_key,
-                    Comment)
-                if comment_to_delete.author != self.user.username:
-                    self.redirect('/')
-                else:
-                    self.render('deleteitem.html',
-                                item="this comment",
-                                comment=comment_to_delete.content)
-            except Exception, e:
-                print e
-                self.redirect('/')
+        comment_to_delete = self.get_authed_entity(
+            comment_urlsafe_key,
+            Comment)
+        self.render('deleteitem.html',
+                    item="this comment",
+                    comment=comment_to_delete.content)
 
     def post(self, comment_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
-        else:
-            try:
-                comment_to_delete = get_by_urlsafe(
-                    comment_urlsafe_key,
-                    Comment)
-                if comment_to_delete.author != self.user.username:
-                    self.redirect('/')
-                else:
-                    comment_to_delete.key.delete()
-                    self.redirect('/')
-            except Exception, e:
-                print e
-                self.redirect('/')
+        comment_to_delete = self.get_authed_entity(
+            comment_urlsafe_key,
+            Comment)
+        comment_to_delete.key.delete()
+        self.redirect('/post/%s' % comment_to_delete.key.parent().urlsafe())
 
 
 class EditComment(BlogHandler):
     def get(self, comment_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
-        else:
-            try:
-                comment_to_edit = get_by_urlsafe(
-                    comment_urlsafe_key,
-                    Comment)
-                if comment_to_edit.author != self.user.username:
-                    self.redirect('/')
-                else:
-                    self.render('editcomment.html',
-                                comment=comment_to_edit)
-            except Exception, e:
-                print e
-                self.redirect('/')
+        comment_to_edit = self.get_authed_entity(
+            comment_urlsafe_key,
+            Comment)
+        self.render('editcomment.html',
+                    comment=comment_to_edit)
 
     def post(self, comment_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
-        else:
-            try:
-                comment_to_edit = get_by_urlsafe(
-                    comment_urlsafe_key,
-                    Comment)
-                if comment_to_edit.author != self.user.username:
-                    self.redirect('/')
-                else:
-                    comment_to_edit.content = self.request.get('comment')
-                    comment_to_edit.put()
-                    self.redirect('/')
-            except Exception, e:
-                print e
-                self.redirect('/')
+        comment_to_edit = self.get_authed_entity(
+            comment_urlsafe_key, Comment)
+        comment_to_edit.content = self.request.get('comment')
+        comment_to_edit.put()
+        self.redirect('/post/%s' % comment_to_edit.key.parent().urlsafe())
 
 
 class ToggleCommentLike(BlogHandler):
     def post(self, comment_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
+        comment_to_like = self.get_authed_entity(
+            comment_urlsafe_key, Comment, need_author=False)
+        if comment_to_like.key in self.user.liked_comments:
+            self.user.liked_comments.pop(
+                self.user.liked_comments.index(comment_to_like.key))
+            comment_to_like.likes -= 1
         else:
-            try:
-                comment_to_like = get_by_urlsafe(comment_urlsafe_key, Comment)
-                if self.user.username == comment_to_like.author:
-                    self.redirect('/post/%s' % comment_to_like.key.parent().urlsafe())
-                elif comment_to_like.key in self.user.liked_comments:
-                    self.user.liked_comments.pop(
-                        self.user.liked_comments.index(comment_to_like.key))
-                    comment_to_like.likes -= 1
-                else:
-                    self.user.liked_comments.append(comment_to_like.key)
-                    comment_to_like.likes += 1
-                self.user.put()
-                comment_to_like.put()
-                self.redirect('/post/%s' % comment_to_like.key.parent().urlsafe())
-            except Exception, e:
-                print e
-                self.redirect('/')
+            self.user.liked_comments.append(comment_to_like.key)
+            comment_to_like.likes += 1
+        self.user.put()
+        comment_to_like.put()
+        self.redirect('/post/%s' % comment_to_like.key.parent().urlsafe())
 
 
 class Register(BlogHandler):
@@ -374,20 +258,22 @@ class Logout(BlogHandler):
         self.logout()
         self.redirect('/')
 
-app = webapp2.WSGIApplication([('/', MainPage),  # what to put on MainPage?
-#                              ('/?(?:.json)?', BlogFront),  TODO: is this needed? what about JSON?
-                               ('/newpost/?', NewPost),
-                               ('/signup/?', Register),
-                               ('/login/?', Login),
-                               ('/logout/?', Logout),
-                               ('/post/([a-zA-Z0-9-_]+)(?:.json)?', PostPage),
-                               ('/user/([a-zA-Z0-9-_]+)(?:.json)?', UserPosts),
-                               ('/edit/([a-zA-Z0-9-_]+)/?', EditPost),
-                               ('/delete/([a-zA-Z0-9-_]+)/?', DeletePost),
-                               ('/post/([a-zA-Z0-9-_]+)/like/?', TogglePostLike),
-                               ('/comment/([a-zA-Z0-9-_]+)/?', AddComment),
-                               ('/comment/([a-zA-Z0-9-_]+)/delete/?', DeleteComment),
-                               ('/comment/([a-zA-Z0-9-_]+)/edit/?', EditComment),
-                               ('/comment/([a-zA-Z0-9-_]+)/like/?', ToggleCommentLike),
-                               ],
-                              debug=True)
+app = webapp2.WSGIApplication(
+    [
+        ('/', MainPage),  # what to put on MainPage?
+        # ('/?(?:.json)?', BlogFront),  TODO: is this needed? what about JSON?
+        ('/newpost/?', NewPost),
+        ('/signup/?', Register),
+        ('/login/?', Login),
+        ('/logout/?', Logout),
+        ('/post/([a-zA-Z0-9-_]+)(?:.json)?', PostPage),
+        ('/user/([a-zA-Z0-9-_]+)(?:.json)?', UserPosts),
+        ('/edit/([a-zA-Z0-9-_]+)/?', EditPost),
+        ('/delete/([a-zA-Z0-9-_]+)/?', DeletePost),
+        ('/post/([a-zA-Z0-9-_]+)/like/?', TogglePostLike),
+        ('/comment/([a-zA-Z0-9-_]+)/?', AddComment),
+        ('/comment/([a-zA-Z0-9-_]+)/delete/?', DeleteComment),
+        ('/comment/([a-zA-Z0-9-_]+)/edit/?', EditComment),
+        ('/comment/([a-zA-Z0-9-_]+)/like/?', ToggleCommentLike),
+    ],
+    debug=True)

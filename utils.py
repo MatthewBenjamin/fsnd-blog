@@ -8,7 +8,7 @@ import re
 import hmac
 from google.appengine.ext import ndb
 
-#from models import User
+from models import Post, Comment
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
@@ -71,6 +71,35 @@ class BlogHandler(webapp2.RequestHandler):
         else:
             self.format = 'html'
 
+    def get_by_urlsafe(self, urlsafe_key, model):
+        """Returns a datastore entity by urlsafe key"""
+        try:
+            key = ndb.Key(urlsafe=urlsafe_key)
+        except Exception:
+            self.abort(404)
+
+        entity = key.get()
+        if not entity:
+            self.abort(404)
+        if not isinstance(entity, model):
+            self.abort(404)
+        return entity
+
+    def get_authed_entity(self, urlsafe_key, model, need_author=True):
+        if not self.user:
+            return self.redirect('/login')
+        entity = self.get_by_urlsafe(urlsafe_key, model)
+        if need_author \
+           and (model == Post and entity.key.parent() == self.user.key or
+                model == Comment and entity.author == self.user.username):
+            return entity
+        elif not need_author \
+            and (model == Post and entity.key.parent() != self.user.key or
+                 model == Comment and entity.author != self.user.username):
+            return entity
+        else:
+            self.abort(403)
+
 
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 def valid_username(username):
@@ -83,23 +112,3 @@ def valid_password(password):
 EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
 def valid_email(email):
     return not email or EMAIL_RE.match(email)
-
-
-def get_by_urlsafe(urlsafe_key, model):
-    """Returns a datastore entity by urlsafe key"""
-    try:
-        key = ndb.Key(urlsafe=urlsafe_key)
-    except TypeError:
-        raise Exception('Invalid Key')
-    except Exception, e:
-        if e.__class__.__name__ == 'ProtocolBufferDecodeError':
-            raise Exception('Invalid Key')
-        else:
-            raise
-
-    entity = key.get()
-    if not entity:
-        raise Exception("Entity not found")
-    if not isinstance(entity, model):
-        raise ValueError('Incorrect Kind')
-    return entity
