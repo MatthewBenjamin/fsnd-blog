@@ -28,7 +28,6 @@ from models import Post, User, Comment
 
 class MainPage(BlogHandler):
     def get(self):
-        # Move queries to utils or class func?
         posts = Post.query().order(-Post.created).fetch(10)
         self.render('blog.html', posts=posts)
 
@@ -258,6 +257,11 @@ class Logout(BlogHandler):
         self.logout()
         self.redirect('/')
 
+config = {}
+config['webapp2_extras.sessions'] = {
+    'secret_key': 'some-secret-key',
+}
+
 app = webapp2.WSGIApplication(
     [
         ('/', MainPage),  # what to put on MainPage?
@@ -276,4 +280,4 @@ app = webapp2.WSGIApplication(
         ('/comment/([a-zA-Z0-9-_]+)/edit/?', EditComment),
         ('/comment/([a-zA-Z0-9-_]+)/like/?', ToggleCommentLike),
     ],
-    debug=True)
+    debug=True, config=config)

@@ -8,8 +8,8 @@
 <body>
     <div class="container">
         {% include 'header.html' %}
-            {% for message in messages %}
-                <p>{{message}}</p>
+            {% for flash in flashes %}
+                <h4 style="color: red">{{flash[0]}}</h4>
             {% endfor %}
         {% block content %}
         {% endblock %}
