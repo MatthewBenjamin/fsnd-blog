@@ -104,9 +104,12 @@ class BlogHandler(webapp2.RequestHandler):
             self.abort(404)
         return entity
 
-    def get_authed_entity(self, urlsafe_key, model, need_author=True):
+    def check_login(self):
         if not self.user:
-            return self.redirect('/login')
+            self.redirect('/login', abort=True)
+
+    def get_authed_entity(self, urlsafe_key, model, need_author=True):
+        self.check_login()
         entity = self.get_by_urlsafe(urlsafe_key, model)
         if need_author \
            and (model == Post and entity.key.parent() == self.user.key or

@@ -3,7 +3,6 @@
 #######################################
 #
 # TODO:
-#   -flash messages
 #   - REFACTOR - get & post on some handlers share resources
 #   - REFACTOR http methods (e.g. replace DeletePost using post method
 #                           with delete method to a general Post handler)
@@ -22,8 +21,6 @@ from utils import (
 
 from google.appengine.ext import ndb
 from models import Post, User, Comment
-
-# TODO: implement global message for html pages (in header -- or main?)
 
 
 class MainPage(BlogHandler):
@@ -62,6 +59,7 @@ class DeletePost(BlogHandler):
         post_to_delete.key.delete()
         # TODO: post still displays upon redirect
         # - need to refresh page after redirect
+        self.session.add_flash("Post deleted")
         self.redirect('/')
 
 
@@ -74,13 +72,11 @@ class UserPosts(BlogHandler):
 
 class NewPost(BlogHandler):
     def get(self):
-        if not self.user:
-            return self.redirect('/login')
+        self.check_login()
         self.render('newpost.html')
 
     def post(self):
-        if not self.user:
-            return self.redirect('/login')
+        self.check_login()
 
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -91,6 +87,7 @@ class NewPost(BlogHandler):
             post_key = ndb.Key('Post', post_id, parent=self.user.key)
             p = Post(subject=subject, content=content, key=post_key)
             p.put()
+            self.session.add_flash("New post created")
             self.redirect("/post/%s" % p.key.urlsafe())
 
 
@@ -112,23 +109,21 @@ class TogglePostLike(BlogHandler):
 
 class AddComment(BlogHandler):
     def post(self, post_urlsafe_key):
-        if not self.user:
-            self.redirect('/login')
-        else:
-            post_to_comment = self.get_by_urlsafe(post_urlsafe_key, Post)
-            new_comment = self.request.get('comment')
-            comment_id = ndb.Model.allocate_ids(
-                size=1,
-                parent=post_to_comment.key)[0]
-            comment_key = ndb.Key(
-                'Comment',
-                comment_id,
-                parent=post_to_comment.key)
-            Comment(
-                content=new_comment,
-                key=comment_key,
-                author=self.user.username).put()
-            self.redirect('/post/%s' % post_urlsafe_key)
+        self.check_login()
+        post_to_comment = self.get_by_urlsafe(post_urlsafe_key, Post)
+        new_comment = self.request.get('comment')
+        comment_id = ndb.Model.allocate_ids(
+            size=1,
+            parent=post_to_comment.key)[0]
+        comment_key = ndb.Key(
+            'Comment',
+            comment_id,
+            parent=post_to_comment.key)
+        Comment(
+            content=new_comment,
+            key=comment_key,
+            author=self.user.username).put()
+        self.redirect('/post/%s' % post_urlsafe_key)
 
 
 class DeleteComment(BlogHandler):
@@ -145,6 +140,7 @@ class DeleteComment(BlogHandler):
             comment_urlsafe_key,
             Comment)
         comment_to_delete.key.delete()
+        self.session.add_flash("Comment deleted")
         self.redirect('/post/%s' % comment_to_delete.key.parent().urlsafe())
 
 
@@ -182,15 +178,15 @@ class ToggleCommentLike(BlogHandler):
 
 class Register(BlogHandler):
     def get(self):
-        if not self.user:
-            self.render('registration.html')
-        else:
-            # TODO: add msg "You are already logged in"
+        if self.user:
+            self.session.add_flash("You are already logged in")
             self.redirect('/')
+        else:
+            self.render('registration.html')
 
     def post(self):
         if self.user:
-            # TODO: add msg "You are already logged in"
+            self.session.add_flash("You are already logged in")
             self.redirect('/')
         else:
             self.username = self.request.get('username')
@@ -225,19 +221,21 @@ class Register(BlogHandler):
                                           email=self.email)
                 user.put()
                 self.login(user)
+                self.session.add_flash("Welcome, %s!" % user.username)
                 self.redirect('/')
 
 
 class Login(BlogHandler):
     def get(self):
-        if not self.user:
-            self.render('login.html')
-        else:
-            # TODO: redirect w msg "You are already logged in"
+        if self.user:
+            self.session.add_flash("You are already logged in")
             self.redirect('/')
+        else:
+            self.render('login.html')
 
     def post(self):
         if self.user:
+            self.session.add_flash("You are already logged in")
             self.redirect('/')
         else:
             username = self.request.get('username')
@@ -246,6 +244,7 @@ class Login(BlogHandler):
             user = User.login(username, password)
             if user:
                 self.login(user)
+                self.session.add_flash("Welcome, %s" % user.username)
                 self.redirect('/')
             else:
                 login_error = 'Invalid login'
