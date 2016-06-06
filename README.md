@@ -9,9 +9,13 @@ This software is running live at http://matt-benjamin.appspot.com/
 ## Setting Up Your own deployment
 Alternatively to using the live link above, you may run this software locally
 or deploy it to your own AppEngine account:
-1.  Update the value of application in app.yaml to the app ID you have registered
- in the App Engine admin console and would like to use to host your instance of
- this sample.
+1.  a. Update the value of application in app.yaml to the app ID you have registered
+    in the App Engine admin console and would like to use to host your instance of
+    this sample.
+
+    b. The following secret_key variables should be updated:
+            - blog.py (line261): config['webapp2_extras.sessions']['secret_key']
+            - utils.py (line20): secret
 2.
     a. To run the app locally, use the devserver using dev_appserver.py DIR.
     You may then use the software by visiting its URI  (by default:
