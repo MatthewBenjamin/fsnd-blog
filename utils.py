@@ -51,7 +51,7 @@ class BlogHandler(webapp2.RequestHandler):
 
     def render_str(self, template, **params):
         params['user'] = self.user
-        params['flashes'] = self.session.get_flashes()
+        params['messages'] = self.session.get_flashes()
         t = jinja_env.get_template(template)
         return t.render(params)
 
@@ -85,6 +85,7 @@ class BlogHandler(webapp2.RequestHandler):
         urlsafe_key = self.read_secure_cookie('user_id')
         self.user = urlsafe_key and ndb.Key(urlsafe=urlsafe_key).get()
 
+        # TODO add get/post shared data lookup here based on URL
         if self.request.url.endswith('.json'):
             self.format = 'json'
         else:
@@ -123,14 +124,19 @@ class BlogHandler(webapp2.RequestHandler):
             self.abort(403)
 
 
+# User registration REs
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+PASS_RE = re.compile(r"^.{3,20}$")
+EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
+
+
 def valid_username(username):
     return username and USER_RE.match(username)
 
-PASS_RE = re.compile(r"^.{3,20}$")
+
 def valid_password(password):
     return password and PASS_RE.match(password)
 
-EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
+
 def valid_email(email):
     return not email or EMAIL_RE.match(email)
