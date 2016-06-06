@@ -16,6 +16,7 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
                                autoescape=True)
 
+# Secure Cookies
 secret = "TEST_ENV"
 
 
@@ -106,16 +107,22 @@ class BlogHandler(webapp2.RequestHandler):
         return entity
 
     def check_login(self):
+        """Aborts request if the user is not logged in."""
         if not self.user:
             self.redirect('/login', abort=True)
 
     def get_authed_entity(self, urlsafe_key, model, need_author=True):
+        """Returns an entity if the current user is authorized to update it.
+           Otherwise  the request is aborted."""
         self.check_login()
         entity = self.get_by_urlsafe(urlsafe_key, model)
+
+        # true if user is the author
         if need_author \
            and (model == Post and entity.key.parent() == self.user.key or
                 model == Comment and entity.author == self.user.username):
             return entity
+        # true if user is NOT the author
         elif not need_author \
             and (model == Post and entity.key.parent() != self.user.key or
                  model == Comment and entity.author != self.user.username):
@@ -124,7 +131,7 @@ class BlogHandler(webapp2.RequestHandler):
             self.abort(403)
 
 
-# User registration REs
+# User registration
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 PASS_RE = re.compile(r"^.{3,20}$")
 EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
