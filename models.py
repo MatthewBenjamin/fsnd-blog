@@ -55,7 +55,18 @@ class Post(ndb.Model):
     created = ndb.DateTimeProperty(auto_now_add=True)
     modified = ndb.DateTimeProperty(auto_now=True)
     likes = ndb.IntegerProperty(default=0, required=True)
-#    tags = repeated string property
+    # TODO: tags = repeated string property
+
+    @property
+    def serialize(self):
+        """Return object data in an easily serializable format."""
+        return {
+            'subject': self.subject,
+            'content': self.content,
+            'created:': str(self.created),
+            'modified': str(self.modified),
+            'likes': self.likes
+        }
 
 
 class Comment(ndb.Model):

@@ -1,13 +1,4 @@
 # blog.py - appengine blog application
-
-#######################################
-#
-# TODO:
-#   - check code quality: styleguide, comments, clarity
-#
-#######################################
-
-
 import webapp2
 
 from utils import (
@@ -24,14 +15,21 @@ from models import Post, User, Comment
 class MainPage(BlogHandler):
     def get(self):
         posts = Post.query().order(-Post.created).fetch(10)
-        self.render('blog.html', posts=posts)
+
+        if self.format == 'html':
+            self.render('blog.html', posts=posts)
+        else:
+            self.render_json(d=[post.serialize for post in posts])
 
 
 class PostPage(BlogHandler):
     def get(self, post_urlsafe_key):
         post = self.get_by_urlsafe(post_urlsafe_key, Post)
         comments = Comment.query(ancestor=post.key).fetch()
-        self.render('post.html', post=post, comments=comments)
+        if self.format == 'html':
+            self.render('post.html', post=post, comments=comments)
+        else:
+            self.render_json(d=post.serialize)
 
 
 class EditPost(BlogHandler):
@@ -65,7 +63,10 @@ class UserPosts(BlogHandler):
     def get(self, username):
         user = User.user_by_name(username)
         posts = Post.query(ancestor=user.key).order(-Post.created).fetch(10)
-        self.render('blog.html', posts=posts)
+        if self.format == 'html':
+            self.render('blog.html', posts=posts)
+        else:
+            self.render_json(d=[post.serialize for post in posts])
 
 
 class NewPost(BlogHandler):
@@ -262,8 +263,8 @@ config['webapp2_extras.sessions'] = {
 
 app = webapp2.WSGIApplication(
     [
-        ('/', MainPage),  # what to put on MainPage?
-        # ('/?(?:.json)?', BlogFront),  TODO: is this needed? what about JSON?
+        ('/', MainPage),
+        ('/?(?:.json)?', MainPage),
         ('/newpost/?', NewPost),
         ('/signup/?', Register),
         ('/login/?', Login),
