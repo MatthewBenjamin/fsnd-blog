@@ -1,20 +1,40 @@
 {% extends 'main.html' %}
 {% block content %}
 
-    {% for post in posts %}
+<div class="row">
+    <div class="twelve-columns">
+        <section>
+            {% for post in posts %}
 
-        <article>
-            <a href="/post/{{post.key.urlsafe()}}"><h3>{{post.subject}}</h3></a>
-            <p>{{post.content}}</p>
-        </article>
+            <article class="post">
+                <header>
+                    <a class="post-title" href="/post/{{post.key.urlsafe()}}">{{post.subject}}</a>
+                    <span class="post-like-count">likes: {{post.likes}}</span>
+                    <hr>
+                </header>
+                {% if post.key.parent() == user.key %}
+                    <div class="author-admin">
+                        <a href="/edit/{{post.key.urlsafe()}}">Edit</a>
+                        <a href="/delete/{{post.key.urlsafe()}}">Delete</a>
+                    </div>
+                {% else %}
+                    <div class="submit-like">
+                        <form action="/post/{{post.key.urlsafe()}}/like" method="post">
+                        {% if post.key in user.liked_posts %}
+                                <button class="button-primary" type="submit">Liked</button>
+                        {% else %}
+                                <button type="submit">Like</button>
+                        {% endif %}
+                        </form>
+                    </div>
+                {% endif %}
 
-        {% if post.key.parent() == user.key %}
-            <div>
-                <a href="/edit/{{post.key.urlsafe()}}">Edit</a>
-                <a href="/delete/{{post.key.urlsafe()}}">Delete</a>
-            </div>
-        {% endif %}
+                <p>{{post.content}}</p>
 
-    {% endfor %}
+            </article>
 
+            {% endfor %}
+        </section>
+    </div>
+</div>
 {% endblock %}

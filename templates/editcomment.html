@@ -1,10 +1,15 @@
 {% extends 'main.html' %}
 {% block content %}
 
-    <h1>Edit Comment</h1>
-    <form method="post">
-        <textarea name="comment">{{comment.content}}</textarea>
-        <input type="submit">
-    </form>
-
+<div class="row">
+    <div class="twelve-columns submit-comment">
+        <h1>Edit Comment</h1>
+        <form method="post">
+            <textarea name="comment">{{comment.content}}</textarea>
+            <br>
+            <button class="button-primary" type="submit">Update</button>
+            <a class="button" href="/post/{{comment.key.parent().urlsafe()}}">Cancel</a>
+        </form>
+    </div>
+</div>
 {% endblock %}

@@ -3,14 +3,24 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="/static/skeleton.css">
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
     <title>Matt's Been Jammin</title>
 </head>
 <body>
     <div class="container">
+
         {% include 'header.html' %}
-            {% for flash in flashes %}
-                <h4 style="color: red">{{flash[0]}}</h4>
-            {% endfor %}
+
+        <div class="row">
+            <div class="twelve-columns">
+                <ul class="messages">
+                    {% for message in messages %}
+                        <li>{{message[0]}}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
         {% block content %}
         {% endblock %}
     </div>

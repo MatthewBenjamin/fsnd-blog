@@ -1,16 +1,25 @@
 {% extends 'main.html' %}
 {% block content %}
 
-    <form method="post">
-        <label for="username">Username</label>
-        <input type="text" name="username" value="{{username}}">
+<div class="row">
+    <div class="twelve-columns">
+        <form method="post">
+            <label for="username">Username</label>
+            <input type="text" name="username" value="{{username}}">
 
-        <label for="password">Password</label>
-        <input type="password" name="password">
+            <label for="password">Password</label>
+            <input type="password" name="password">
 
-        <p style="color: red">{{login_error}}</p>
+            <p style="color: red">{{login_error}}</p>
 
-        <input type="submit">
-    </form>
+            <input type="submit">
+        </form>
+    </div>
+</div>
 
+<div class="row">
+    <div class="twelve-columns">
+        <p>Don't have an account? <a href="/signup">Signup!</a></p>
+    </div>
+</div>
 {% endblock %}

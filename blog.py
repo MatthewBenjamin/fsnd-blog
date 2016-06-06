@@ -3,9 +3,7 @@
 #######################################
 #
 # TODO:
-#   - REFACTOR - get & post on some handlers share resources
-#   - REFACTOR http methods (e.g. replace DeletePost using post method
-#                           with delete method to a general Post handler)
+#   - check code quality: styleguide, comments, clarity
 #
 #######################################
 
@@ -52,7 +50,7 @@ class EditPost(BlogHandler):
 class DeletePost(BlogHandler):
     def get(self, post_urlsafe_key):
         post_to_delete = self.get_authed_entity(post_urlsafe_key, Post)
-        self.render('deleteitem.html', post=post_to_delete)
+        self.render('deleteitem.html', item=post_to_delete.subject)
 
     def post(self, post_urlsafe_key):
         post_to_delete = self.get_authed_entity(post_urlsafe_key, Post)
@@ -254,6 +252,7 @@ class Login(BlogHandler):
 class Logout(BlogHandler):
     def get(self):
         self.logout()
+        self.session.add_flash("You have successfully logged out")
         self.redirect('/')
 
 config = {}

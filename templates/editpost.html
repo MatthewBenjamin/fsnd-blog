@@ -1,13 +1,17 @@
 {% extends 'main.html' %}
 {% block content%}
-
-    <form method="post">
-        <label for="subject">Subject</label>
-        <input type="text" name="subject" size="70" value="{{post.subject}}">
-        <br>
-        <label for="content">Content</label>
-        <textarea name="content">{{post.content}}</textarea>
-        <br>
-        <input type="submit" value="Update">
-    </form>
+<div class="row">
+    <div class="twelve-columns">
+        <form class="post-submission" method="post">
+            <label for="subject">Subject</label>
+            <input type="text" name="subject" value="{{post.subject}}">
+            <br>
+            <label for="content">Content</label>
+            <textarea name="content">{{post.content}}</textarea>
+            <br>
+            <button class="button-primary" type="submit">Update</button>
+            <a class="button" href="/post/{{post.key.urlsafe()}}">Cancel</a>
+        </form>
+    </div>
+</div>
 {% endblock %}

@@ -1,49 +1,75 @@
 {% extends 'main.html' %}
 {% block content %}
 
-    <article>
-        <h3>{{post.subject}}</h3>
-        <p>{{post.content}}</p>
-        <p>Likes: {{post.likes}}</p>
-
-        {% if post.key.parent() == user.key %}
-            <a href="/edit/{{post.key.urlsafe()}}">Edit</a>
-            <a href="/delete/{{post.key.urlsafe()}}">Delete</a>
-        {% else %}
-            <form action="/post/{{post.key.urlsafe()}}/like" method="post">
-            {% if post.key in user.liked_posts %}
-                    <button class="button-primary" type="submit">Liked</button>
+<div class="row">
+    <div class="twelve-columns">
+        <article class="post">
+            <header>
+                <a class="post-title" href="/post/{{post.key.urlsafe()}}">{{post.subject}}</a>
+                <span class="post-like-count">likes: {{post.likes}}</span>
+                <hr>
+            </header>
+            {% if post.key.parent() == user.key %}
+                <div class="author-admin">
+                    <a href="/edit/{{post.key.urlsafe()}}">Edit</a>
+                    <a href="/delete/{{post.key.urlsafe()}}">Delete</a>
+                </div>
             {% else %}
-                    <button type="submit">Like</button>
+                <div class="submit-like">
+                    <form action="/post/{{post.key.urlsafe()}}/like" method="post">
+                    {% if post.key in user.liked_posts %}
+                            <button class="button-primary" type="submit">Liked</button>
+                    {% else %}
+                            <button type="submit">Like</button>
+                    {% endif %}
+                    </form>
+                </div>
             {% endif %}
+
+            <p>{{post.content}}</p>
+
+        </article>
+
+
+        <section class="comments">
+            <h5>Comments<hr></h5>
+            {% for comment in comments %}
+                <div class="comment">
+                    <header>
+                        <a class="comment-title" href="/user/{{comment.author}}">{{comment.author}}</a>
+                        <span class="comment-like-count">likes: {{comment.likes}}</span>
+                        <hr>
+                    </header>
+                    {% if comment.author == user.username %}
+                        <div class="author-admin">
+                            <a href="/comment/{{comment.key.urlsafe()}}/edit">Edit</a>
+                            <a href="/comment/{{comment.key.urlsafe()}}/delete">Delete</a>
+                        </div>
+                    {% else %}
+                        <div class="submit-like">
+                            <form action="/comment/{{comment.key.urlsafe()}}/like" method="post">
+                            {% if comment.key in user.liked_comments %}
+                                    <button class="button-primary" type="submit">Liked</button>
+                            {% else %}
+                                    <button type="submit">Like</button>
+                            {% endif %}
+                            </form>
+                        </div>
+                    {% endif %}
+                    <p>{{comment.content}}</p>
+                </div>
+            {% endfor %}
+        </section>
+
+        <section class="submit-comment">
+            <!--<label for="comment">Add a Comment</label> >Add a comment:</h5>-->
+            <form method="post" action="/comment/{{post.key.urlsafe()}}">
+                <label for="comment">Add a Comment</label>
+                <textarea name="comment"></textarea>
+                <br>
+                <button type="submit">Submit</button>
             </form>
-        {% endif %}
-    </article>
-
-    <section>
-        <h4>Comments</h4>
-        {% for comment in comments %}
-            <a href="/user/{{comment.author}}"><h5>{{comment.author}}</h5></a>
-            <p>{{comment.content}}</p>
-            <p>Likes: {{comment.likes}}</p>
-            {% if comment.author == user.username %}
-                <a href="/comment/{{comment.key.urlsafe()}}/edit">Edit</a>
-                <a href="/comment/{{comment.key.urlsafe()}}/delete">Delete</a>
-            {% else %}
-                <form action="/comment/{{comment.key.urlsafe()}}/like" method="post">
-                {% if comment.key in user.liked_comments %}
-                        <button class="button-primary" type="submit">Liked</button>
-                {% else %}
-                        <button type="submit">Like</button>
-                {% endif %}
-            {% endif %}
-        {% endfor %}
-    </section>
-
-    <h5>Add a comment:</h5>
-    <form method="post" action="/comment/{{post.key.urlsafe()}}">
-        <textarea name="comment"></textarea>
-        <input type="submit">
-    </form>
-
+        </section>
+    </div>
+</div>
 {% endblock %}

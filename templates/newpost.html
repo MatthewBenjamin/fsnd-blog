@@ -1,13 +1,18 @@
 {% extends 'main.html' %}
 {% block content%}
 
-    <form method="post">
-        <label for="subject">Subject</label>
-        <input type="text" name="subject" size="70">
-        <br>
-        <label for="content">Content</label>
-        <textarea name="content"></textarea>
-        <br>
-        <input type="submit">
-    </form>
+<div class="row">
+    <div class="twelve-columns">
+        <form class="post-submission" method="post">
+            <label for="subject">Subject</label>
+            <input type="text" name="subject">
+            <br>
+            <label for="content">Content</label>
+            <textarea name="content"></textarea>
+            <br>
+            <button class="button-primary" type="submit">Create Post</button>
+            <a class="button" href="/">Cancel</a>
+        </form>
+    </div>
+</div>
 {% endblock %}
